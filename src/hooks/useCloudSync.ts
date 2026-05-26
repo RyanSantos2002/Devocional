@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import {
   syncDevocionaisCloud,
   syncMeetingsCloud,
@@ -25,93 +25,68 @@ interface SyncableState {
 }
 
 export function useCloudSync(state: SyncableState) {
-  const {
-    journalEntries, setJournalEntries,
-    discipleshipMeetings, setDiscipleshipMeetings,
-    bibleHighlights, setBibleHighlights,
-    prayers, setPrayers,
-    goals, setGoals,
-    readingProgress, setReadingProgress,
-  } = state;
+  // Store state in refs so the sync function always reads the latest values
+  // without causing useEffect re-runs
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
-  // Track previous values to detect changes (isDirty pattern)
-  const prevRef = useRef<string>('');
-
-  useEffect(() => {
-    let active = true;
-
-    const currentHash = JSON.stringify({
-      j: journalEntries.length,
-      m: discipleshipMeetings.length,
-      h: bibleHighlights.length,
-      p: prayers.length,
-      g: goals.length,
-      r: readingProgress.length,
-    });
-
-    const isDirty = currentHash !== prevRef.current;
-
-    async function performSync() {
-      try {
-        if (journalEntries.length > 0) {
-          const synced = await syncDevocionaisCloud(journalEntries);
-          if (active && JSON.stringify(synced) !== JSON.stringify(journalEntries)) {
-            setJournalEntries(synced);
-          }
+  const performSync = useCallback(async () => {
+    const s = stateRef.current;
+    try {
+      if (s.journalEntries.length > 0) {
+        const synced = await syncDevocionaisCloud(s.journalEntries);
+        if (JSON.stringify(synced) !== JSON.stringify(s.journalEntries)) {
+          s.setJournalEntries(synced);
         }
-
-        if (discipleshipMeetings.length > 0) {
-          const synced = await syncMeetingsCloud(discipleshipMeetings);
-          if (active && JSON.stringify(synced) !== JSON.stringify(discipleshipMeetings)) {
-            setDiscipleshipMeetings(synced);
-          }
-        }
-
-        const syncedHighlights = await syncHighlightsCloud(bibleHighlights);
-        if (active && JSON.stringify(syncedHighlights) !== JSON.stringify(bibleHighlights)) {
-          setBibleHighlights(syncedHighlights);
-        }
-
-        if (prayers.length > 0) {
-          const synced = await syncPrayersCloud(prayers);
-          if (active && JSON.stringify(synced) !== JSON.stringify(prayers)) {
-            setPrayers(synced);
-          }
-        }
-
-        if (goals.length > 0) {
-          const synced = await syncGoalsCloud(goals);
-          if (active && JSON.stringify(synced) !== JSON.stringify(goals)) {
-            setGoals(synced);
-          }
-        }
-
-        if (readingProgress.length > 0) {
-          const synced = await syncReadingProgressCloud(readingProgress);
-          if (active && JSON.stringify(synced) !== JSON.stringify(readingProgress)) {
-            setReadingProgress(synced);
-          }
-        }
-
-        // Update hash after successful sync
-        prevRef.current = currentHash;
-      } catch (err) {
-        console.warn("Cloud synchronization failed:", err);
       }
-    }
 
-    // Only sync when data actually changed or on initial load
-    if (isDirty || prevRef.current === '') {
-      performSync();
+      if (s.discipleshipMeetings.length > 0) {
+        const synced = await syncMeetingsCloud(s.discipleshipMeetings);
+        if (JSON.stringify(synced) !== JSON.stringify(s.discipleshipMeetings)) {
+          s.setDiscipleshipMeetings(synced);
+        }
+      }
+
+      const syncedHighlights = await syncHighlightsCloud(s.bibleHighlights);
+      if (JSON.stringify(syncedHighlights) !== JSON.stringify(s.bibleHighlights)) {
+        s.setBibleHighlights(syncedHighlights);
+      }
+
+      if (s.prayers.length > 0) {
+        const synced = await syncPrayersCloud(s.prayers);
+        if (JSON.stringify(synced) !== JSON.stringify(s.prayers)) {
+          s.setPrayers(synced);
+        }
+      }
+
+      if (s.goals.length > 0) {
+        const synced = await syncGoalsCloud(s.goals);
+        if (JSON.stringify(synced) !== JSON.stringify(s.goals)) {
+          s.setGoals(synced);
+        }
+      }
+
+      if (s.readingProgress.length > 0) {
+        const synced = await syncReadingProgressCloud(s.readingProgress);
+        if (JSON.stringify(synced) !== JSON.stringify(s.readingProgress)) {
+          s.setReadingProgress(synced);
+        }
+      }
+    } catch (err) {
+      console.warn("Cloud synchronization failed:", err);
     }
+  }, []);
+
+  // Single stable effect - interval and online listener never re-create
+  useEffect(() => {
+    performSync();
 
     window.addEventListener('online', performSync);
     const interval = setInterval(performSync, 30000);
 
     return () => {
-      active = false;
       window.removeEventListener('online', performSync);
       clearInterval(interval);
     };
-  }, [journalEntries, discipleshipMeetings, bibleHighlights, prayers, goals, readingProgress]);
+  }, [performSync]);
 }
