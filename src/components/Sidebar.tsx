@@ -1,6 +1,4 @@
-import { useRef } from 'react';
-import { LayoutDashboard, BookOpen, BookMarked, Users, Flame, Settings, Sun, Moon, Download, Upload } from 'lucide-react';
-import { useAppContext } from '../contexts/AppContext';
+import { LayoutDashboard, BookOpen, BookMarked, Users, Flame, Settings } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -11,25 +9,12 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab, streakCount, onOpenSettings, onLogout }: SidebarProps) {
-  const { theme, toggleTheme, exportData, importData } = useAppContext();
-  const importRef = useRef<HTMLInputElement>(null);
-
   const menuItems = [
     { id: 'dashboard', name: 'Painel', icon: LayoutDashboard },
     { id: 'bible', name: 'Leitor Biblico', icon: BookOpen },
     { id: 'journal', name: 'Diario Devocional', icon: BookMarked },
     { id: 'discipleship', name: 'Discipulado', icon: Users },
   ];
-
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (window.confirm('Isso vai substituir seus dados atuais pelo backup. Deseja continuar?')) {
-        importData(file);
-      }
-    }
-    e.target.value = '';
-  };
 
   return (
     <>
@@ -81,18 +66,10 @@ export function Sidebar({ activeTab, setActiveTab, streakCount, onOpenSettings, 
           gap: '1rem',
           padding: '1rem',
           borderRadius: 'var(--radius-md)',
-          background: 'rgba(212, 163, 89, 0.05)',
+          background: 'var(--accent-gold-muted)',
           borderColor: 'rgba(212, 163, 89, 0.15)'
         }}>
-          <div style={{
-            color: 'var(--accent-gold)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            animation: 'fadeIn 1s ease'
-          }}>
-            <Flame size={24} fill="var(--accent-gold)" className="pulse-gold" style={{ borderRadius: '50%' }} />
-          </div>
+          <Flame size={24} fill="var(--accent-gold)" color="var(--accent-gold)" className="pulse-gold" style={{ borderRadius: '50%' }} />
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>OFENSIVA ATIVA</div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>{streakCount} {streakCount === 1 ? 'Dia' : 'Dias'} seguidos</div>
@@ -123,57 +100,17 @@ export function Sidebar({ activeTab, setActiveTab, streakCount, onOpenSettings, 
                   transition: 'all var(--transition-normal)'
                 }}
               >
-                <Icon size={20} style={{ color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)' }} />
+                <Icon size={20} />
                 {item.name}
               </button>
             );
           })}
         </nav>
 
-        {/* Theme Toggle + Data Actions */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={toggleTheme}
-            className="btn btn-secondary"
-            aria-label={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-            title={theme === 'dark' ? 'Tema Claro' : 'Tema Escuro'}
-            style={{ flex: 1, padding: '0.5rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            <span>{theme === 'dark' ? 'Claro' : 'Escuro'}</span>
-          </button>
-          <button
-            onClick={exportData}
-            className="btn btn-secondary"
-            aria-label="Exportar backup dos dados"
-            title="Exportar Backup"
-            style={{ padding: '0.5rem 0.65rem' }}
-          >
-            <Download size={16} />
-          </button>
-          <button
-            onClick={() => importRef.current?.click()}
-            className="btn btn-secondary"
-            aria-label="Importar backup dos dados"
-            title="Importar Backup"
-            style={{ padding: '0.5rem 0.65rem' }}
-          >
-            <Upload size={16} />
-          </button>
-          <input
-            ref={importRef}
-            type="file"
-            accept=".json"
-            onChange={handleImport}
-            style={{ display: 'none' }}
-            aria-hidden="true"
-          />
-        </div>
-
-        {/* Settings Button */}
+        {/* Settings Button - just a gear icon */}
         <button
           onClick={onOpenSettings}
-          className="btn btn-secondary animate-fade-in"
+          className="btn btn-secondary"
           aria-label="Abrir configuracoes"
           style={{
             padding: '0.65rem',
@@ -184,46 +121,32 @@ export function Sidebar({ activeTab, setActiveTab, streakCount, onOpenSettings, 
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.5rem',
-            borderColor: 'rgba(255,255,255,0.05)',
-            background: 'rgba(255,255,255,0.02)',
             cursor: 'pointer'
           }}
         >
           <Settings size={16} style={{ color: 'var(--accent-gold)' }} />
-          <span>Ajustes do Perfil</span>
+          <span>Configuracoes</span>
         </button>
 
-        {/* Logout Button */}
+        {/* Logout */}
         {onLogout && (
           <button
             onClick={onLogout}
-            className="btn btn-text animate-fade-in"
+            className="btn btn-text"
             aria-label="Sair da conta"
             style={{
-              padding: '0.65rem',
-              fontSize: '0.85rem',
+              padding: '0.5rem',
+              fontSize: '0.8rem',
               width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              color: '#f87171',
-              background: 'rgba(248, 113, 113, 0.05)',
-              border: '1px solid rgba(248, 113, 113, 0.1)',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              marginTop: '-1.5rem',
-              transition: 'all var(--transition-fast)'
+              color: 'var(--accent-red)',
+              marginTop: '-1.5rem'
             }}
           >
-            <span>Sair da Conta</span>
+            Sair da Conta
           </button>
         )}
 
-        {/* Footer info */}
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', fontWeight: 500, marginTop: '0.25rem' }}>
-          Versao PWA v2.0.0
-        </div>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>v2.0.0</div>
       </aside>
 
       {/* Mobile Bottom Navigation */}
@@ -266,20 +189,17 @@ export function Sidebar({ activeTab, setActiveTab, streakCount, onOpenSettings, 
                 fontWeight: isActive ? 600 : 500,
                 width: '20%',
                 height: '100%',
-                cursor: 'pointer',
-                transition: 'color var(--transition-fast)'
+                cursor: 'pointer'
               }}
             >
-              <Icon size={20} style={{ color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)' }} />
+              <Icon size={20} />
               <span>{item.name}</span>
             </button>
           );
         })}
-
-        {/* Mobile Settings Button */}
         <button
           onClick={onOpenSettings}
-          aria-label="Abrir configuracoes"
+          aria-label="Configuracoes"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -293,24 +213,18 @@ export function Sidebar({ activeTab, setActiveTab, streakCount, onOpenSettings, 
             fontWeight: 500,
             width: '20%',
             height: '100%',
-            cursor: 'pointer',
-            transition: 'color var(--transition-fast)'
+            cursor: 'pointer'
           }}
         >
-          <Settings size={20} style={{ color: 'var(--text-secondary)' }} />
-          <span>Ajustes</span>
+          <Settings size={20} />
+          <span>Config.</span>
         </button>
       </nav>
 
-      {/* Responsive overrides style block */}
       <style>{`
         @media (max-width: 768px) {
-          aside {
-            display: none !important;
-          }
-          nav.glass-panel {
-            display: flex !important;
-          }
+          aside { display: none !important; }
+          nav.glass-panel { display: flex !important; }
         }
       `}</style>
     </>

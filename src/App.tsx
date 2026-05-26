@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import { Sidebar } from './components/Sidebar';
@@ -156,119 +156,102 @@ function AppContent() {
 
 function SettingsModal() {
   const ctx = useAppContext();
+  const importRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (window.confirm('Isso vai substituir seus dados atuais pelo backup. Deseja continuar?')) {
+        ctx.importData(file);
+      }
+    }
+    e.target.value = '';
+  };
 
   return (
     <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      background: 'rgba(0,0,0,0.85)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2500,
-      padding: '1.5rem',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)'
-    }}>
-      <div className="glass-panel animate-fade-in" style={{
-        width: '100%',
-        maxWidth: '500px',
-        padding: '2rem',
-        background: 'var(--bg-secondary)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.5rem',
-        border: '1px solid var(--accent-gold)'
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 2500, padding: '1.5rem', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)'
+    }} onClick={() => ctx.setShowSettingsModal(false)}>
+      <div className="glass-panel animate-fade-in" onClick={e => e.stopPropagation()} style={{
+        width: '100%', maxWidth: '480px', padding: '1.75rem',
+        background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', gap: '1.25rem',
+        border: '1px solid var(--glass-border)', maxHeight: '85vh', overflowY: 'auto'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Ajustes do Aplicativo</h3>
-          <button
-            onClick={() => ctx.setShowSettingsModal(false)}
-            className="btn btn-secondary"
-            style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
-          >
-            Fechar
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: '1px solid var(--glass-border)' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Configuracoes</h3>
+          <button onClick={() => ctx.setShowSettingsModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.25rem', lineHeight: 1 }}>
+            ×
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Theme Toggle */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)' }}>
           <div>
-            <h4 style={{ fontSize: '0.95rem', color: 'var(--accent-gold)', marginBottom: '0.25rem' }}>Perfil & Assistente de Estudo IA</h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-              Personalize seu perfil local e configure sua chave do Gemini. Todos os dados permanecem estritamente privados no seu navegador.
-            </p>
+            <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Tema</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ctx.theme === 'dark' ? 'Escuro' : 'Claro'}</div>
           </div>
+          <button
+            onClick={ctx.toggleTheme}
+            className="btn btn-secondary"
+            style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', gap: '0.4rem' }}
+          >
+            {ctx.theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+          </button>
+        </div>
 
-          <div className="form-group">
-            <label className="form-label" style={{ fontSize: '0.75rem' }}>Seu Nome / Apelido</label>
-            <input
-              type="text"
-              value={ctx.userName}
-              onChange={(e) => ctx.setUserName(e.target.value)}
-              className="input-field"
-              placeholder="Como você quer ser chamado?"
-              style={{ width: '100%' }}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" style={{ fontSize: '0.75rem' }}>Chave de API do Gemini</label>
-            <input
-              type="password"
-              value={ctx.geminiApiKey}
-              onChange={(e) => ctx.setGeminiApiKey(e.target.value)}
-              className="input-field"
-              placeholder="Cole sua API Key (AI_zaSy...)"
-              style={{ width: '100%' }}
-            />
-          </div>
-
-          <div style={{
-            background: 'rgba(212, 163, 89, 0.05)',
-            border: '1px solid rgba(212, 163, 89, 0.15)',
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            fontSize: '0.8rem',
-            lineHeight: '1.4'
-          }}>
-            <span style={{ fontWeight: 'bold', color: 'var(--accent-gold)' }}>Como pegar uma chave gratis?</span>
-            <ol style={{ paddingLeft: '1.25rem', marginTop: '0.25rem' }}>
-              <li>Acesse o <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'underline' }}>Google AI Studio</a>.</li>
-              <li>Faca login com seu Gmail.</li>
-              <li>Clique em <b>Get API Key</b> e crie uma chave nova.</li>
-              <li>Copie e cole a chave no campo acima!</li>
-            </ol>
+        {/* Profile */}
+        <div>
+          <h4 style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Perfil</h4>
+          <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+            <label className="form-label" style={{ fontSize: '0.7rem' }}>Seu Nome / Apelido</label>
+            <input type="text" value={ctx.userName} onChange={e => ctx.setUserName(e.target.value)} className="input-field" placeholder="Como quer ser chamado?" style={{ width: '100%' }} />
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+        {/* Gemini API */}
+        <div>
+          <h4 style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Assistente IA (Gemini)</h4>
+          <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+            <label className="form-label" style={{ fontSize: '0.7rem', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Chave de API</span>
+              <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'underline', fontSize: '0.65rem' }}>Obter gratis</a>
+            </label>
+            <input type="password" value={ctx.geminiApiKey} onChange={e => ctx.setGeminiApiKey(e.target.value)} className="input-field" placeholder="Cole sua API Key (AI_zaSy...)" style={{ width: '100%' }} />
+          </div>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+            Acesse o Google AI Studio, faca login e clique em "Get API Key" para obter uma chave gratuita.
+          </p>
+        </div>
+
+        {/* Backup */}
+        <div>
+          <h4 style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Dados & Backup</h4>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={ctx.exportData} className="btn btn-secondary" style={{ flex: 1, fontSize: '0.8rem', padding: '0.5rem' }}>
+              Exportar Backup
+            </button>
+            <button onClick={() => importRef.current?.click()} className="btn btn-secondary" style={{ flex: 1, fontSize: '0.8rem', padding: '0.5rem' }}>
+              Importar Backup
+            </button>
+            <input ref={importRef} type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+          </div>
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+            Exporte seus devocionais, oracoes e progresso em um arquivo JSON.
+          </p>
+        </div>
+
+        {/* Footer actions */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--glass-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
           {ctx.session && (
-            <button
-              onClick={ctx.handleLogout}
-              className="btn"
-              style={{
-                background: 'rgba(248, 113, 113, 0.1)',
-                color: '#f87171',
-                border: '1px solid rgba(248, 113, 113, 0.2)',
-                fontSize: '0.9rem',
-                padding: '0.5rem 1rem'
-              }}
-            >
+            <button onClick={ctx.handleLogout} className="btn" style={{ background: 'rgba(248,113,113,0.08)', color: 'var(--accent-red)', border: '1px solid rgba(248,113,113,0.15)', fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}>
               Sair da Conta
             </button>
           )}
-          <button
-            onClick={() => {
-              ctx.setShowSettingsModal(false);
-              alert('Configuracoes salvas localmente!');
-            }}
-            className="btn btn-primary"
-            style={{ fontSize: '0.9rem', padding: '0.5rem 1.5rem', marginLeft: 'auto' }}
-          >
-            Salvar e Fechar
+          <button onClick={() => ctx.setShowSettingsModal(false)} className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.4rem 1.25rem', marginLeft: 'auto' }}>
+            Fechar
           </button>
         </div>
       </div>
